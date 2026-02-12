@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import bcrypt
 
 DB_PATH = "lumar_trades.db"
 
@@ -15,8 +16,17 @@ def init_db():
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )
+    """)
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS trades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
             timestamp TEXT NOT NULL,
             asset TEXT DEFAULT 'NQ',
             direction TEXT NOT NULL,
@@ -32,14 +42,45 @@ def init_db():
             commandments_followed TEXT,
             commandments_broken TEXT,
             emotional_notes TEXT,
-            discipline_score REAL DEFAULT 0
+            discipline_score REAL DEFAULT 0,
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     """)
     conn.commit()
     conn.close()
 
 
-def insert_trade(trade_data):
+def create_user(username, password):
+    conn = get_connection()
+    cursor = conn.cursor()
+    password_bytes = password.encode("utf-8")[:72]
+    password_hash = bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
+    try:
+        cursor.execute(
+            "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+            (username, password_hash, datetime.now().isoformat()),
+        )
+        conn.commit()
+        user_id = cursor.lastrowid
+        conn.close()
+        return user_id, None
+    except sqlite3.IntegrityError:
+        conn.close()
+        return None, "Username already exists"
+
+
+def authenticate_user(username, password):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, password_hash FROM users WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    conn.close()
+    if row and bcrypt.checkpw(password.encode("utf-8")[:72], row["password_hash"].encode("utf-8")):
+        return row["id"]
+    return None
+
+
+def insert_trade(user_id, trade_data):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -55,12 +96,13 @@ def insert_trade(trade_data):
 
     cursor.execute("""
         INSERT INTO trades (
-            timestamp, asset, direction, entry_price, exit_price,
+            user_id, timestamp, asset, direction, entry_price, exit_price,
             stop_loss, quantity, pnl, vwap_position, ema_alignment,
             volume_validation, orb_level, commandments_followed,
             commandments_broken, emotional_notes, discipline_score
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
+        user_id,
         trade_data["timestamp"],
         trade_data["asset"],
         trade_data["direction"],
@@ -83,9 +125,13 @@ def insert_trade(trade_data):
     return pnl, discipline_score
 
 
-def get_all_trades():
+def get_all_trades(user_id):
     conn = get_connection()
-    df = pd.read_sql_query("SELECT * FROM trades ORDER BY timestamp DESC", conn)
+    df = pd.read_sql_query(
+        "SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC",
+        conn,
+        params=(user_id,),
+    )
     conn.close()
     return df
 
@@ -122,9 +168,9 @@ def get_metrics(df):
     }
 
 
-def delete_trade(trade_id):
+def delete_trade(trade_id, user_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM trades WHERE id = ?", (trade_id,))
+    cursor.execute("DELETE FROM trades WHERE id = ? AND user_id = ?", (trade_id, user_id))
     conn.commit()
     conn.close()
