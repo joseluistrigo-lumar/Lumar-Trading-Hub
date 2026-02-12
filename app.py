@@ -494,9 +494,19 @@ with tab_export:
     else:
         st.info("No data to export. Start logging trades first.")
 
+st.markdown("---")
+st.markdown(f"""
+<div style="text-align:center;padding:1rem 0 0.5rem 0;">
+    <span style="font-size:0.8rem;color:#555;">Powered by <strong style="color:{NEON_GREEN};">LUMAR Trading</strong> | Success is a Discipline</span>
+</div>
+""", unsafe_allow_html=True)
+
 with st.sidebar:
+    # REPLACE WITH LUMAR LOGO URL
+    st.image("attached_assets/LOGO_LUMAR1-17_1770923340855.png", use_container_width=True)
+
     st.markdown("""
-    <div style="background:#1A1D23;border:2px solid #FF0000;border-radius:10px;padding:1rem;margin-bottom:1rem;text-align:center;">
+    <div style="background:#1A1D23;border:2px solid #FF0000;border-radius:10px;padding:1rem;margin-bottom:0.5rem;text-align:center;">
         <p style="font-size:0.8rem;color:#888;margin:0 0 0.5rem 0;text-transform:uppercase;letter-spacing:1px;">Community & Live Sessions</p>
         <a href="https://www.youtube.com/@lumartrading" target="_blank" style="text-decoration:none;">
             <div style="background:#FF0000;color:white;font-weight:700;font-size:1rem;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;transition:opacity 0.2s;">
@@ -507,7 +517,16 @@ with st.sidebar:
     </div>
     """, unsafe_allow_html=True)
 
-    st.markdown(f'<p style="font-size:1.4rem;font-weight:700;background:linear-gradient(90deg,{NEON_GREEN},{ELECTRIC_BLUE});-webkit-background-clip:text;-webkit-text-fill-color:transparent;">LUMAR</p>', unsafe_allow_html=True)
+    st.markdown(f"""
+    <div style="text-align:center;margin-bottom:1rem;">
+        <a href="https://www.lumartraders.com" target="_blank" style="text-decoration:none;">
+            <div style="background:transparent;color:{ELECTRIC_BLUE};font-weight:600;font-size:0.95rem;padding:0.5rem 1rem;border-radius:8px;border:2px solid {ELECTRIC_BLUE};cursor:pointer;">
+                🌐 Visit Official Website
+            </div>
+        </a>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("**Strategy Tracker**")
     st.markdown("---")
 
