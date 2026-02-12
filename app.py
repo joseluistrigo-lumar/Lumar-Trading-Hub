@@ -495,6 +495,18 @@ with tab_export:
         st.info("No data to export. Start logging trades first.")
 
 with st.sidebar:
+    st.markdown("""
+    <div style="background:#1A1D23;border:2px solid #FF0000;border-radius:10px;padding:1rem;margin-bottom:1rem;text-align:center;">
+        <p style="font-size:0.8rem;color:#888;margin:0 0 0.5rem 0;text-transform:uppercase;letter-spacing:1px;">Community & Live Sessions</p>
+        <a href="https://www.youtube.com/@lumartrading" target="_blank" style="text-decoration:none;">
+            <div style="background:#FF0000;color:white;font-weight:700;font-size:1rem;padding:0.6rem 1rem;border-radius:8px;cursor:pointer;transition:opacity 0.2s;">
+                📺 Join Lumar Trading Live
+            </div>
+        </a>
+        <p style="font-size:0.75rem;color:#AAA;margin:0.5rem 0 0 0;font-style:italic;">Trade NQ futures live with Marcio and the team!</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown(f'<p style="font-size:1.4rem;font-weight:700;background:linear-gradient(90deg,{NEON_GREEN},{ELECTRIC_BLUE});-webkit-background-clip:text;-webkit-text-fill-color:transparent;">LUMAR</p>', unsafe_allow_html=True)
     st.markdown("**Strategy Tracker**")
     st.markdown("---")
