@@ -5,17 +5,16 @@ A professional trading journal for Nasdaq NQ Futures day traders, built with Pyt
 
 ## Architecture
 - **app.py** - Main Streamlit application with auth system (login/signup) and 4 tabs: Dashboard, New Trade, Trade History, Export Data
-- **database.py** - SQLite database module with user auth (bcrypt hashing), trade CRUD operations, and metrics calculation
-- **lumar_trades.db** - SQLite database (auto-created on first run)
+- **database.py** - PostgreSQL database module with user auth (bcrypt hashing), trade CRUD operations, and metrics calculation
 - **.streamlit/config.toml** - Streamlit config with dark theme
 
-## Database Schema
-- **users** table: id, username (unique), password_hash (bcrypt), created_at
-- **trades** table: id, user_id (FK to users), timestamp, asset, direction, entry/exit prices, stop_loss, quantity, pnl, LUMAR checklist fields, commandments, emotional_notes, discipline_score
+## Database Schema (PostgreSQL)
+- **users** table: id (SERIAL PK), username (UNIQUE), password_hash (bcrypt), created_at
+- **trades** table: id (SERIAL PK), user_id (FK to users), timestamp, asset, direction, entry/exit prices, stop_loss, quantity, pnl, LUMAR checklist fields, commandments, emotional_notes, discipline_score
 
 ## Tech Stack
 - Python 3.11, Streamlit, Pandas, Plotly
-- SQLite for local data storage
+- PostgreSQL (Replit managed) via psycopg2-binary for persistent data storage
 - bcrypt for password hashing
 - Dark theme with Neon Green (#00FF7F), Electric Blue (#00D4FF), Crimson Red (#FF3B3B)
 

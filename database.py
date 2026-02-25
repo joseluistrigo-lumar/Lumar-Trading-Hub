@@ -1,14 +1,18 @@
-import sqlite3
+import os
+import warnings
+import psycopg2
+import psycopg2.extras
 import pandas as pd
 from datetime import datetime
 import bcrypt
 
-DB_PATH = "lumar_trades.db"
+warnings.filterwarnings("ignore", message=".*pandas only supports SQLAlchemy.*")
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL)
     return conn
 
 
@@ -17,33 +21,32 @@ def init_db():
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
+            id SERIAL PRIMARY KEY,
+            username VARCHAR(255) UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            created_at TIMESTAMP NOT NULL DEFAULT NOW()
         )
     """)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS trades (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            timestamp TEXT NOT NULL,
-            asset TEXT DEFAULT 'NQ',
-            direction TEXT NOT NULL,
-            entry_price REAL NOT NULL,
-            exit_price REAL NOT NULL,
-            stop_loss REAL NOT NULL,
+            id SERIAL PRIMARY KEY,
+            user_id INTEGER NOT NULL REFERENCES users(id),
+            timestamp TIMESTAMP NOT NULL,
+            asset VARCHAR(50) DEFAULT 'NQ',
+            direction VARCHAR(10) NOT NULL,
+            entry_price DOUBLE PRECISION NOT NULL,
+            exit_price DOUBLE PRECISION NOT NULL,
+            stop_loss DOUBLE PRECISION NOT NULL,
             quantity INTEGER NOT NULL,
-            pnl REAL NOT NULL,
-            vwap_position TEXT NOT NULL,
-            ema_alignment TEXT NOT NULL,
-            volume_validation TEXT NOT NULL,
-            orb_level TEXT NOT NULL,
+            pnl DOUBLE PRECISION NOT NULL,
+            vwap_position VARCHAR(50) NOT NULL,
+            ema_alignment VARCHAR(50) NOT NULL,
+            volume_validation VARCHAR(50) NOT NULL,
+            orb_level VARCHAR(50) NOT NULL,
             commandments_followed TEXT,
             commandments_broken TEXT,
             emotional_notes TEXT,
-            discipline_score REAL DEFAULT 0,
-            FOREIGN KEY (user_id) REFERENCES users(id)
+            discipline_score DOUBLE PRECISION DEFAULT 0
         )
     """)
     conn.commit()
@@ -57,22 +60,23 @@ def create_user(username, password):
     password_hash = bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
     try:
         cursor.execute(
-            "INSERT INTO users (username, password_hash, created_at) VALUES (?, ?, ?)",
+            "INSERT INTO users (username, password_hash, created_at) VALUES (%s, %s, %s) RETURNING id",
             (username, password_hash, datetime.now().isoformat()),
         )
+        user_id = cursor.fetchone()[0]
         conn.commit()
-        user_id = cursor.lastrowid
         conn.close()
         return user_id, None
-    except sqlite3.IntegrityError:
+    except psycopg2.IntegrityError:
+        conn.rollback()
         conn.close()
         return None, "Username already exists"
 
 
 def authenticate_user(username, password):
     conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, password_hash FROM users WHERE username = ?", (username,))
+    cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cursor.execute("SELECT id, password_hash FROM users WHERE username = %s", (username,))
     row = cursor.fetchone()
     conn.close()
     if row and bcrypt.checkpw(password.encode("utf-8")[:72], row["password_hash"].encode("utf-8")):
@@ -100,7 +104,7 @@ def insert_trade(user_id, trade_data):
             stop_loss, quantity, pnl, vwap_position, ema_alignment,
             volume_validation, orb_level, commandments_followed,
             commandments_broken, emotional_notes, discipline_score
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     """, (
         user_id,
         trade_data["timestamp"],
@@ -128,7 +132,7 @@ def insert_trade(user_id, trade_data):
 def get_all_trades(user_id):
     conn = get_connection()
     df = pd.read_sql_query(
-        "SELECT * FROM trades WHERE user_id = ? ORDER BY timestamp DESC",
+        "SELECT * FROM trades WHERE user_id = %s ORDER BY timestamp DESC",
         conn,
         params=(user_id,),
     )
@@ -171,6 +175,6 @@ def get_metrics(df):
 def delete_trade(trade_id, user_id):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM trades WHERE id = ? AND user_id = ?", (trade_id, user_id))
+    cursor.execute("DELETE FROM trades WHERE id = %s AND user_id = %s", (trade_id, user_id))
     conn.commit()
     conn.close()
