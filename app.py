@@ -503,7 +503,7 @@ def show_main_app():
                 with st.expander(
                     f"{icon} {row['asset']} {row['direction']} — "
                     f"P&L: ${pnl_val:,.2f} — "
-                    f"{row['timestamp'][:16]}"
+                    f"{str(row['timestamp'])[:16]}"
                 ):
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Entry", f"${row['entry_price']:,.2f}")
