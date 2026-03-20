@@ -5,10 +5,13 @@ import psycopg2.extras
 import pandas as pd
 from datetime import datetime
 import bcrypt
+import streamlit as st
 
 warnings.filterwarnings("ignore", message=".*pandas only supports SQLAlchemy.*")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL and "DATABASE_URL" in st.secrets:
+    DATABASE_URL = st.secrets["DATABASE_URL"]
 
 
 def get_connection():
